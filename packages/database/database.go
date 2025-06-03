@@ -84,7 +84,7 @@ func RemoveTokens(id int64) error {
 	case "transcribe":
 		tokens = 10
 	case "summarize":
-		tokens = 12
+		tokens = 15
 	default:
 		tokens = 10
 	}

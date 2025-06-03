@@ -69,7 +69,7 @@ func RecognizeText(path string, recType string) (string, error) {
 		result = fmt.Sprintf("🎤 *Расшифровка текста:*\n\n%s", text)
 	case "summarize":
 		splittedResponse := strings.Split(text, "|||")
-		result = fmt.Sprintf("🎯 *Ключевые моменты:*\n\n%s\n\n...\n\n🔍 *Расшифровка текста:*\n\n%s", splittedResponse[0], splittedResponse[1])
+		result = fmt.Sprintf("🎯 *Ключевые моменты:*\n\n%s\n\n\n🔍 *Расшифровка текста:*\n\n%s", splittedResponse[0], splittedResponse[1])
 	default:
 		result = fmt.Sprintf("🎤 *Расшифровка текста:*\n\n%s", text)
 

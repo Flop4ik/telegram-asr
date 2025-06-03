@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 var DB *sql.DB
@@ -18,7 +18,7 @@ type Record struct {
 
 func Initialize(dbPath string) error {
 	var err error
-	DB, err = sql.Open("sqlite3", dbPath)
+	DB, err = sql.Open("sqlite", dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -71,13 +71,12 @@ func ResetTokens() error {
 	log.Println("All users' tokens updated to 150")
 	return nil
 }
-
-func RemoveTokens(id int64) {
+func RemoveTokens(id int64) error {
 	var mode string
 	err := DB.QueryRow("SELECT mode FROM users WHERE id = ?", id).Scan(&mode)
 
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to get user mode: %w", err)
 	}
 
 	var tokens float32
@@ -92,10 +91,11 @@ func RemoveTokens(id int64) {
 
 	_, err = DB.Exec("UPDATE users SET tokens = tokens - ? WHERE id = ?", tokens, id)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to update tokens: %w", err)
 	}
-}
 
+	return nil
+}
 func GetTokens(id int64) (int32, error) {
 	var tokens int32
 	err := DB.QueryRow("SELECT tokens FROM users WHERE id = ?", id).Scan(&tokens)

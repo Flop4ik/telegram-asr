@@ -18,7 +18,9 @@ func main() {
 	currentDay := time.Now().Format("2006-01-02")
 
 	godotenv.Load()
-	db.Initialize("./database.db")
+	if err := db.Initialize("./database.db"); err != nil {
+		log.Fatalf("Ошибка инициализации базы данных: %v", err)
+	}
 
 	pref := tg.Settings{
 		Token:  os.Getenv("TELEGRAM_TOKEN"),

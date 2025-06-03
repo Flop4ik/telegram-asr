@@ -1,4 +1,4 @@
-package handlers
+package actions
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	db "github.com/Flop4ik/telegram-asr/packages/database"
 	"github.com/Flop4ik/telegram-asr/packages/gemini"
 
 	tg "gopkg.in/telebot.v4"
@@ -14,7 +15,26 @@ import (
 
 func OnVoice(c tg.Context, b *tg.Bot) error {
 
-	if c.Message().Voice.Duration > 1200 {
+	id := c.Sender().ID
+
+	mode, err := db.GetMode(id)
+
+	if err != nil {
+		log.Printf("Failed to get mode for user %d: %v", id, err)
+		return c.Send("Ошибка при получении режима работы. Пожалуйста, попробуйте позже.")
+	}
+
+	tokens, err := db.GetTokens(id)
+	if err != nil {
+		log.Printf("Failed to get tokens for user %d: %v", id, err)
+		return c.Send("Ошибка при получении токенов. Пожалуйста, попробуйте позже.")
+	}
+	if tokens <= 0 {
+		log.Printf("User %d has no tokens left", id)
+		return c.Send("У вас закончились токены. Пожалуйста, попробуйте завтра.")
+	}
+
+	if c.Message().Voice.Duration > 600 {
 		log.Printf("Voice message from %s exceeds 10 minutes, ignoring.", c.Sender().Username)
 		return c.Send("Голосовое сообщение слишком длинное. Пожалуйста, отправьте голосовое сообщение длиной до 10 минут.")
 	}
@@ -36,7 +56,7 @@ func OnVoice(c tg.Context, b *tg.Bot) error {
 
 	fmt.Println(path)
 
-	result, err := gemini.RecognizeText(path)
+	result, err := gemini.RecognizeText(path, mode)
 
 	if err != nil {
 		log.Printf("Error recognizing text: %v", err)
@@ -48,21 +68,10 @@ func OnVoice(c tg.Context, b *tg.Bot) error {
 		log.Printf("Failed to delete file %s: %v", path, err)
 	}
 
-	return c.Send(result, &tg.SendOptions{ParseMode: tg.ModeMarkdown})
-}
+	db.RemoveTokens(c.Sender().ID)
 
-func StartCommand(c tg.Context) error {
-	log.Printf("Received /start command from %s", c.Sender().Username)
-	welcomeMessage := `
-👋 *Добро пожаловать в TASR !* 🎤
+	tokens, _ = db.GetTokens(id)
 
-Что такое TASR? Это аббревиатура от "Telegram ASR" (AI Speech Recognition). 🤖
-
-Я здесь, чтобы помочь вам преобразовать ваши голосовые сообщения в текст. 📝
-
-Этот бот нужен, чтобы переводить голосовые в текст, без telegram premium
-
-Просто отправьте мне голосовое сообщение, и я сделаю все возможное, чтобы ее расшифровать. ✨
-`
-	return c.Send(welcomeMessage, &tg.SendOptions{ParseMode: tg.ModeMarkdown})
+	c.Send(result, &tg.SendOptions{ParseMode: tg.ModeMarkdown})
+	return c.Send(fmt.Sprintf("🪙 У вас осталось *%d из 150* токенов.", tokens), &tg.SendOptions{ParseMode: tg.ModeMarkdown})
 }

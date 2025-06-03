@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	db "github.com/Flop4ik/telegram-asr/packages/database"
 	"github.com/Flop4ik/telegram-asr/packages/handlers"
 
 	"github.com/joho/godotenv"
@@ -14,7 +15,10 @@ import (
 
 func main() {
 
+	currentDay := time.Now().Format("2006-01-02")
+
 	godotenv.Load()
+	db.Initialize("./database.db")
 
 	pref := tg.Settings{
 		Token:  os.Getenv("TELEGRAM_TOKEN"),
@@ -27,13 +31,23 @@ func main() {
 		return
 	}
 
-	b.Handle(tg.OnVoice, func(c tg.Context) error {
-		return handlers.OnVoice(c, b)
-	})
+	handlers.AddHandlers(b)
 
-	b.Handle("/start", func(c tg.Context) error {
-		return handlers.StartCommand(c)
-	})
+	go func() {
+		for {
+			if time.Now().Format("2006-01-02") != currentDay {
+				currentDay = time.Now().Format("2006-01-02")
+				log.Println("New day detected, resetting tokens for all users.")
+				err := db.ResetTokens()
+				if err != nil {
+					log.Printf("Failed to reset tokens: %v", err)
+				} else {
+					log.Println("Tokens reset successfully.")
+				}
+			}
+			time.Sleep(10 * time.Minute)
+		}
+	}()
 
 	b.Start()
 

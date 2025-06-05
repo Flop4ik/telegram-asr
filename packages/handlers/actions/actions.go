@@ -15,6 +15,8 @@ import (
 
 func OnVoice(c tg.Context, b *tg.Bot) error {
 
+	var requiredTokens int32
+
 	id := c.Sender().ID
 
 	mode, err := db.GetMode(id)
@@ -29,9 +31,19 @@ func OnVoice(c tg.Context, b *tg.Bot) error {
 		log.Printf("Failed to get tokens for user %d: %v", id, err)
 		return c.Send("Ошибка при получении токенов. Пожалуйста, попробуйте позже.")
 	}
-	if tokens <= 0 {
-		log.Printf("User %d has no tokens left", id)
-		return c.Send("У вас закончились токены. Пожалуйста, попробуйте завтра.")
+
+	switch mode {
+	case "transcribe":
+		requiredTokens = 10
+	case "summarize":
+		requiredTokens = 15
+	default:
+		log.Printf("Unknown mode for user %d: %s", id, mode)
+		requiredTokens = 10
+	}
+
+	if tokens < requiredTokens {
+		return c.Send("У вас недостаточно токенов для транскрибации. Пожалуйста, попробуйте завтра.")
 	}
 
 	if c.Message().Voice.Duration > 600 {

@@ -17,6 +17,7 @@ type Record struct {
 }
 
 func Initialize(dbPath string) error {
+
 	var err error
 	DB, err = sql.Open("sqlite", dbPath)
 	if err != nil {
